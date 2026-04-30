@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contact Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f3; --bg3: #efefec;
+    --text: #1a1a18; --text2: #6b6b67;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-dark: #0C447C;
+    --green: #0F6E56; --green-bg: #E1F5EE;
+    --red: #993C1D; --red-bg: #FAECE7;
+    --r-md: 8px; --r-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+      --text: #f0f0ec; --text2: #9a9a94;
+      --border: rgba(255,255,255,0.12); --border2: rgba(255,255,255,0.22);
+      --blue: #85B7EB; --blue-bg: #042C53; --blue-dark: #B5D4F4;
+      --green: #5DCAA5; --green-bg: #04342C;
+      --red: #F0997B; --red-bg: #4A1B0C;
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg3); color: var(--text);
+    min-height: 100vh; display: flex;
+    align-items: flex-start; justify-content: center; padding: 2rem 1rem;
+  }
+  .card {
+    background: var(--bg); border-radius: 16px; border: 0.5px solid var(--border);
+    padding: 2rem; width: 100%; max-width: 560px;
+    box-shadow: 0 2px 24px rgba(0,0,0,0.07);
+  }
+  .logo { font-size: 12px; font-weight: 600; letter-spacing: 0.09em; color: var(--text2); text-transform: uppercase; margin-bottom: 1.5rem; }
+  .step { display: none; }
+  .step.active { display: block; }
+  .step-title { font-size: 20px; font-weight: 500; color: var(--text); margin-bottom: 0.35rem; }
+  .step-sub { font-size: 14px; color: var(--text2); margin-bottom: 1.5rem; line-height: 1.5; }
+  .progress { display: flex; gap: 5px; margin-bottom: 1.75rem; }
+  .prog-dot { height: 3px; flex: 1; border-radius: 2px; background: var(--border); transition: background 0.25s; }
+  .prog-dot.done { background: var(--blue); }
+  input[type="text"] {
+    width: 100%; padding: 9px 12px; font-size: 14px;
+    border: 0.5px solid var(--border2); border-radius: var(--r-md);
+    background: var(--bg2); color: var(--text);
+    outline: none; margin-bottom: 1rem; font-family: inherit;
+  }
+  input[type="text"]:focus { border-color: var(--blue); }
+  .country-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.5rem; }
+  .country-btn {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--r-md); padding: 12px 14px;
+    cursor: pointer; text-align: left; transition: all 0.15s;
+  }
+  .country-btn:hover { border-color: var(--border2); background: var(--bg3); }
+  .country-btn.selected { border: 1.5px solid var(--blue); background: var(--blue-bg); }
+  .country-btn .code { font-size: 11px; color: var(--text2); font-weight: 600; letter-spacing: 0.06em; }
+  .country-btn .cname { font-size: 15px; font-weight: 500; color: var(--text); margin-top: 2px; }
+  .contact-card {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--r-lg); padding: 1rem 1.1rem; margin-bottom: 10px;
+  }
+  .contact-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .avatar {
+    width: 38px; height: 38px; border-radius: 50%; background: var(--blue-bg);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 13px; color: var(--blue); flex-shrink: 0;
+  }
+  .cname-p { font-size: 14px; font-weight: 500; color: var(--text); }
+  .crole-p { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .detail { font-size: 12px; color: var(--text2); margin: 3px 0; }
+  .detail a { color: var(--blue); text-decoration: none; }
+  .detail a:hover { text-decoration: underline; }
+  .status-section { margin-top: 10px; border-top: 0.5px solid var(--border); padding-top: 10px; }
+  .status-label { font-size: 12px; color: var(--text2); margin-bottom: 7px; display: block; }
+  .radio-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .rbtn {
+    padding: 5px 12px; border: 0.5px solid var(--border2);
+    border-radius: var(--r-md); font-size: 13px; color: var(--text2);
+    background: var(--bg); cursor: pointer; transition: all 0.12s; font-family: inherit;
+  }
+  .rbtn:hover { background: var(--bg3); }
+  .rbtn.sel-yes { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+  .rbtn.sel-no { border-color: var(--red); background: var(--red-bg); color: var(--red); }
+  .followup { margin-top: 10px; display: none; }
+  .followup-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: block; margin-top: 8px; }
+  .followup textarea {
+    width: 100%; font-size: 13px; font-family: inherit;
+    border: 0.5px solid var(--border2); border-radius: var(--r-md);
+    padding: 8px 10px; resize: vertical; min-height: 60px;
+    background: var(--bg); color: var(--text); margin-top: 8px; outline: none;
+  }
+  .followup textarea:focus { border-color: var(--blue); }
+  .nav-row { display: flex; gap: 10px; margin-top: 1.75rem; }
+  .btn {
+    padding: 9px 20px; font-size: 14px; border-radius: var(--r-md);
+    cursor: pointer; font-family: inherit; font-weight: 500;
+    border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text);
+    transition: all 0.12s;
+  }
+  .btn:hover { background: var(--bg3); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--blue); color: #E6F1FB; border: none; margin-left: auto; }
+  .btn-primary:hover { background: var(--blue-dark); }
+  .review-item {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--r-md); padding: 10px 14px; margin-bottom: 8px;
+  }
+  .ri-label { font-size: 11px; color: var(--text2); letter-spacing: 0.04em; text-transform: uppercase; }
+  .ri-name { font-size: 14px; font-weight: 500; color: var(--text); margin-top: 2px; }
+  .ri-status { font-size: 13px; color: var(--text2); margin-top: 3px; }
+  .ri-notes { font-size: 12px; color: var(--text2); margin-top: 4px; font-style: italic; }
+  .done-wrap { text-align: center; padding: 1rem 0; }
+  .done-icon { font-size: 40px; margin-bottom: 1rem; }
+  .done-title { font-size: 20px; font-weight: 500; color: var(--text); margin-bottom: 0.5rem; }
+  .done-sub { font-size: 14px; color: var(--text2); margin-bottom: 1.5rem; }
+  .summary-item {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--r-md); padding: 10px 14px; margin: 6px 0;
+    font-size: 13px; color: var(--text); text-align: left;
+  }
+  .sending-msg { font-size: 14px; color: var(--text2); text-align: center; padding: 1rem 0; }
+  .error-msg {
+    background: var(--red-bg); border: 0.5px solid var(--red);
+    border-radius: var(--r-md); padding: 10px 14px; margin-top: 1rem;
+    font-size: 13px; color: var(--red);
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">Contact Tracker</div>
+  <div class="progress">
+    <div class="prog-dot done" id="d0"></div>
+    <div class="prog-dot" id="d1"></div>
+    <div class="prog-dot" id="d2"></div>
+  </div>
+
+  <!-- Step 0 -->
+  <div class="step active" id="step-0">
+    <p class="step-title">Choose your centre</p>
+    <p class="step-sub">Enter your name and select your country code below.</p>
+    <input type="text" id="submitter-name" placeholder="Your name (optional)" />
+    <div class="country-grid">
+      <button class="country-btn" data-code="EAC" onclick="selectCountry(this)">
+        <div class="code">EAC</div><div class="cname">Austria</div>
+      </button>
+      <button class="country-btn" data-code="EAK" onclick="selectCountry(this)">
+        <div class="code">EAK</div><div class="cname">Ireland</div>
+      </button>
+      <button class="country-btn" data-code="EAG" onclick="selectCountry(this)">
+        <div class="code">EAG</div><div class="cname">Finland</div>
+      </button>
+      <button class="country-btn" data-code="EAP" onclick="selectCountry(this)">
+        <div class="code">EAP</div><div class="cname">Malta</div>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-primary" onclick="goStep(1)">Next</button>
+    </div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="step" id="step-1">
+    <p class="step-title" id="contacts-title">Contacts</p>
+    <p class="step-sub">For each contact, mark whether you have reached out and how it went.</p>
+    <div id="contacts-list"></div>
+    <div class="nav-row">
+      <button class="btn" onclick="goStep(0)">Back</button>
+      <button class="btn btn-primary" onclick="goStep(2)">Review</button>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step" id="step-2">
+    <p class="step-title">Review &amp; submit</p>
+    <p class="step-sub">Check your responses before submitting.</p>
+    <div id="review-area"></div>
+    <div id="error-area"></div>
+    <div class="nav-row">
+      <button class="btn" id="btn-edit" onclick="goStep(1)">Edit</button>
+      <button class="btn btn-primary" id="btn-submit" onclick="submitForm()">Submit</button>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step" id="step-3">
+    <div class="done-wrap">
+      <div class="done-icon">&#10003;</div>
+      <p class="done-title">Submitted &#8212; thank you!</p>
+      <p class="done-sub">Your responses have been saved to the tracker.</p>
+      <div id="final-summary"></div>
+      <div class="nav-row" style="justify-content:center;margin-top:1.25rem;">
+        <button class="btn" onclick="resetForm()">Submit another response</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var SHEETMONKEY_URL = 'https://api.sheetmonkey.io/form/qvADhuWZYGLxsmQ3aMLjcV';
+
+var CONTACTS = {
+  EAC: [
+    { name: "Marlies Schroeder", role: "Chief Press Officer (OeNB)", tel: "+43 1 40420-6900", email: null, li: "https://www.linkedin.com/in/marlies-schroeder-7983632/" }
+  ],
+  EAK: [
+    { name: "Elaine Scanlon", role: "Head of Media", tel: "+353 (0)87 213 6313", email: "elaine.scanlon@centralbank.ie", li: "https://www.linkedin.com/in/elaine-scanlon/" },
+    { name: "Una Quinn", role: "Communication Specialist", tel: "+353 (0)86 067 4008", email: "una.quinn@centralbank.ie", li: "https://www.linkedin.com/in/una-quinn-8a148160/" }
+  ],
+  EAG: [
+    { name: "Lina Lario", role: "Head of Communications", tel: "+358 9 183 2689", email: null, li: "https://www.linkedin.com/in/iina-lario-09062b77/" },
+    { name: "Satu Hietanen", role: "Stakeholder Engagement", tel: "+358 9 183 2569", email: null, li: "https://www.linkedin.com/in/satu-hietanen-5a6b917a/" },
+    { name: "Richard Brander", role: "Senior Communication Specialist", tel: "+358 9 183 2206", email: null, li: "https://www.linkedin.com/in/richard-brander-667a1112/" }
+  ],
+  EAP: [
+    { name: "Roxanne Cristiano", role: "Senior Public Media", tel: null, email: null, li: "https://www.linkedin.com/in/roxanne-cristiano-871a6219b/" },
+    { name: "Fenech Rose", role: "Media/Events Senior Officer", tel: null, email: null, li: "https://www.linkedin.com/in/fenech-rose-2811971a2/" }
+  ]
+};
+
+var COUNTRY_NAMES = { EAC: "Austria (EAC)", EAK: "Ireland (EAK)", EAG: "Finland (EAG)", EAP: "Malta (EAP)" };
+var selectedCode = null;
+var state = {};
+
+function initials(name) {
+  return name.trim().split(/\s+/).map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+}
+
+function selectCountry(btn) {
+  document.querySelectorAll('.country-btn').forEach(function(b){ b.classList.remove('selected'); });
+  btn.classList.add('selected');
+  selectedCode = btn.getAttribute('data-code');
+}
+
+function setProgress(step) {
+  ['d0','d1','d2'].forEach(function(id, idx){
+    document.getElementById(id).className = 'prog-dot' + (idx <= step ? ' done' : '');
+  });
+}
+
+function goStep(n) {
+  if (n === 1) {
+    if (!selectedCode) { alert('Please select a centre first.'); return; }
+    buildContacts(selectedCode);
+  }
+  if (n === 2) buildReview();
+  document.querySelectorAll('.step').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById('step-' + n).classList.add('active');
+  setProgress(n);
+  window.scrollTo(0, 0);
+}
+
+function buildContacts(code) {
+  document.getElementById('contacts-title').textContent = COUNTRY_NAMES[code];
+  var list = document.getElementById('contacts-list');
+  list.innerHTML = '';
+  if (!state[code]) state[code] = {};
+  CONTACTS[code].forEach(function(c, i) {
+    if (!state[code][i]) state[code][i] = { contacted: null, outcome: null, notes: '' };
+    var s = state[code][i];
+    var details = '';
+    if (c.tel) details += '<div class="detail">Tel: ' + c.tel + '</div>';
+    if (c.email) details += '<div class="detail">Email: <a href="mailto:' + c.email + '">' + c.email + '</a></div>';
+    if (c.li) details += '<div class="detail"><a href="' + c.li + '" target="_blank">LinkedIn profile</a></div>';
+    var fuStyle = s.contacted === true ? 'block' : 'none';
+    var div = document.createElement('div');
+    div.className = 'contact-card';
+    div.innerHTML =
+      '<div class="contact-header">' +
+        '<div class="avatar">' + initials(c.name) + '</div>' +
+        '<div><p class="cname-p">' + c.name + '</p><p class="crole-p">' + c.role + '</p></div>' +
+      '</div>' +
+      details +
+      '<div class="status-section">' +
+        '<span class="status-label">Have you contacted this person?</span>' +
+        '<div class="radio-row" id="crow-' + code + i + '">' +
+          '<button class="rbtn' + (s.contacted === true ? ' sel-yes' : '') + '" onclick="setContacted(\'' + code + '\',' + i + ',true)">Yes</button>' +
+          '<button class="rbtn' + (s.contacted === false ? ' sel-no' : '') + '" onclick="setContacted(\'' + code + '\',' + i + ',false)">Not yet</button>' +
+        '</div>' +
+        '<div class="followup" id="fu-' + code + i + '" style="display:' + fuStyle + '">' +
+          '<span class="followup-label">Was it successful?</span>' +
+          '<div class="radio-row" id="orow-' + code + i + '">' +
+            '<button class="rbtn' + (s.outcome === 'yes' ? ' sel-yes' : '') + '" onclick="setOutcome(\'' + code + '\',' + i + ',\'yes\')">Yes</button>' +
+            '<button class="rbtn' + (s.outcome === 'partial' ? ' sel-yes' : '') + '" onclick="setOutcome(\'' + code + '\',' + i + ',\'partial\')">Partially</button>' +
+            '<button class="rbtn' + (s.outcome === 'no' ? ' sel-no' : '') + '" onclick="setOutcome(\'' + code + '\',' + i + ',\'no\')">No</button>' +
+          '</div>' +
+          '<textarea placeholder="Notes / what happened..." onchange="setNotes(\'' + code + '\',' + i + ',this.value)">' + (s.notes || '') + '</textarea>' +
+        '</div>' +
+      '</div>';
+    list.appendChild(div);
+  });
+}
+
+function setContacted(code, i, val) {
+  if (!state[code]) state[code] = {};
+  if (!state[code][i]) state[code][i] = { contacted: null, outcome: null, notes: '' };
+  state[code][i].contacted = val;
+  var row = document.getElementById('crow-' + code + i);
+  var btns = row.querySelectorAll('.rbtn');
+  btns[0].className = 'rbtn' + (val === true ? ' sel-yes' : '');
+  btns[1].className = 'rbtn' + (val === false ? ' sel-no' : '');
+  document.getElementById('fu-' + code + i).style.display = val === true ? 'block' : 'none';
+}
+
+function setOutcome(code, i, val) {
+  if (!state[code] || !state[code][i]) return;
+  state[code][i].outcome = val;
+  var row = document.getElementById('orow-' + code + i);
+  var btns = row.querySelectorAll('.rbtn');
+  var vals = ['yes', 'partial', 'no'];
+  btns.forEach(function(btn, idx) {
+    var v = vals[idx];
+    btn.className = 'rbtn' + (v === val ? (v === 'no' ? ' sel-no' : ' sel-yes') : '');
+  });
+}
+
+function setNotes(code, i, val) {
+  if (state[code] && state[code][i]) state[code][i].notes = val;
+}
+
+function buildReview() {
+  var area = document.getElementById('review-area');
+  area.innerHTML = '';
+  document.getElementById('error-area').innerHTML = '';
+  var name = document.getElementById('submitter-name').value.trim();
+  if (name) {
+    var nm = document.createElement('div');
+    nm.className = 'review-item';
+    nm.innerHTML = '<div class="ri-label">Submitted by</div><div class="ri-name">' + name + '</div>';
+    area.appendChild(nm);
+  }
+  var hdr = document.createElement('div');
+  hdr.className = 'review-item';
+  hdr.innerHTML = '<div class="ri-label">Centre</div><div class="ri-name">' + COUNTRY_NAMES[selectedCode] + '</div>';
+  area.appendChild(hdr);
+  CONTACTS[selectedCode].forEach(function(c, i) {
+    var s = (state[selectedCode] && state[selectedCode][i]) || {};
+    var statusText = s.contacted === true
+      ? 'Contacted — ' + (s.outcome || 'outcome not set')
+      : s.contacted === false ? 'Not yet contacted' : 'No answer given';
+    var item = document.createElement('div');
+    item.className = 'review-item';
+    item.innerHTML = '<div class="ri-name">' + c.name + '</div><div class="ri-status">' + statusText + '</div>' +
+      (s.notes ? '<div class="ri-notes">"' + s.notes + '"</div>' : '');
+    area.appendChild(item);
+  });
+}
+
+function submitForm() {
+  var submitBtn = document.getElementById('btn-submit');
+  var editBtn = document.getElementById('btn-edit');
+  var errorArea = document.getElementById('error-area');
+  errorArea.innerHTML = '';
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Sending...';
+  editBtn.disabled = true;
+
+  var name = document.getElementById('submitter-name').value.trim();
+  var now = new Date().toISOString();
+
+  // Build flat data object for Sheetmonkey
+  var data = {
+    'Submitted By': name || 'Anonymous',
+    'Centre': COUNTRY_NAMES[selectedCode],
+    'Submitted At': now
+  };
+
+  CONTACTS[selectedCode].forEach(function(c, i) {
+    var s = (state[selectedCode] && state[selectedCode][i]) || {};
+    var prefix = c.name;
+    data[prefix + ' - Contacted'] = s.contacted === true ? 'Yes' : s.contacted === false ? 'No' : 'Not answered';
+    data[prefix + ' - Outcome'] = s.contacted === true ? (s.outcome || 'Not set') : 'N/A';
+    data[prefix + ' - Notes'] = s.notes || '';
+  });
+
+  // Build form-encoded body
+  var body = Object.keys(data).map(function(k) {
+    return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]);
+  }).join('&');
+
+  fetch(SHEETMONKEY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body
+  })
+  .then(function(res) {
+    if (!res.ok) throw new Error('Server error: ' + res.status);
+    return res.json();
+  })
+  .then(function() {
+    showDone();
+  })
+  .catch(function(err) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit';
+    editBtn.disabled = false;
+    errorArea.innerHTML = '<div class="error-msg">Something went wrong — please try again. (' + err.message + ')</div>';
+  });
+}
+
+function showDone() {
+  var final = document.getElementById('final-summary');
+  final.innerHTML = '';
+  CONTACTS[selectedCode].forEach(function(c, i) {
+    var s = (state[selectedCode] && state[selectedCode][i]) || {};
+    var status = s.contacted === true ? 'Contacted (' + (s.outcome || '?') + ')' : 'Not yet contacted';
+    var item = document.createElement('div');
+    item.className = 'summary-item';
+    item.innerHTML = '<strong>' + c.name + '</strong>: ' + status + (s.notes ? ' &mdash; <em>' + s.notes + '</em>' : '');
+    final.appendChild(item);
+  });
+  document.querySelectorAll('.step').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById('step-3').classList.add('active');
+  setProgress(3);
+  window.scrollTo(0, 0);
+}
+
+function resetForm() {
+  selectedCode = null;
+  state = {};
+  document.querySelectorAll('.country-btn').forEach(function(b){ b.classList.remove('selected'); });
+  document.getElementById('submitter-name').value = '';
+  document.getElementById('btn-submit').disabled = false;
+  document.getElementById('btn-submit').textContent = 'Submit';
+  document.getElementById('btn-edit').disabled = false;
+  document.querySelectorAll('.step').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById('step-0').classList.add('active');
+  setProgress(0);
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
