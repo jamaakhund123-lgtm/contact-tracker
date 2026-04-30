@@ -124,15 +124,23 @@
     border-radius: var(--r-md); padding: 10px 14px; margin: 6px 0;
     font-size: 13px; color: var(--text); text-align: left;
   }
-  .sending-msg { font-size: 14px; color: var(--text2); text-align: center; padding: 1rem 0; }
-  .error-msg {
-    background: var(--red-bg); border: 0.5px solid var(--red);
-    border-radius: var(--r-md); padding: 10px 14px; margin-top: 1rem;
-    font-size: 13px; color: var(--red);
-  }
 </style>
 </head>
 <body>
+
+<!-- Hidden iframe to capture form POST without page reload -->
+<iframe name="hidden-submit" style="display:none;"></iframe>
+
+<!-- Hidden form that actually submits to Sheetmonkey -->
+<form id="sm-form" action="https://api.sheetmonkey.io/form/qvADhuWZYGLxsmQ3aMLjcV" method="POST" target="hidden-submit" style="display:none;">
+  <input type="hidden" name="Submitted By" id="f-name" />
+  <input type="hidden" name="Centre" id="f-centre" />
+  <input type="hidden" name="Submitted At" id="f-time" />
+  <input type="hidden" name="x-sheetmonkey-current-date-time" value="x-sheetmonkey-current-date-time" />
+  <!-- Contact fields injected dynamically -->
+  <div id="f-contacts"></div>
+</form>
+
 <div class="card">
   <div class="logo">Contact Tracker</div>
   <div class="progress">
@@ -141,7 +149,6 @@
     <div class="prog-dot" id="d2"></div>
   </div>
 
-  <!-- Step 0 -->
   <div class="step active" id="step-0">
     <p class="step-title">Choose your centre</p>
     <p class="step-sub">Enter your name and select your country code below.</p>
@@ -165,7 +172,6 @@
     </div>
   </div>
 
-  <!-- Step 1 -->
   <div class="step" id="step-1">
     <p class="step-title" id="contacts-title">Contacts</p>
     <p class="step-sub">For each contact, mark whether you have reached out and how it went.</p>
@@ -176,19 +182,16 @@
     </div>
   </div>
 
-  <!-- Step 2 -->
   <div class="step" id="step-2">
     <p class="step-title">Review &amp; submit</p>
     <p class="step-sub">Check your responses before submitting.</p>
     <div id="review-area"></div>
-    <div id="error-area"></div>
     <div class="nav-row">
-      <button class="btn" id="btn-edit" onclick="goStep(1)">Edit</button>
-      <button class="btn btn-primary" id="btn-submit" onclick="submitForm()">Submit</button>
+      <button class="btn" onclick="goStep(1)">Edit</button>
+      <button class="btn btn-primary" onclick="submitForm()">Submit</button>
     </div>
   </div>
 
-  <!-- Step 3 -->
   <div class="step" id="step-3">
     <div class="done-wrap">
       <div class="done-icon">&#10003;</div>
@@ -203,8 +206,6 @@
 </div>
 
 <script>
-var SHEETMONKEY_URL = 'https://api.sheetmonkey.io/form/qvADhuWZYGLxsmQ3aMLjcV';
-
 var CONTACTS = {
   EAC: [
     { name: "Marlies Schroeder", role: "Chief Press Officer (OeNB)", tel: "+43 1 40420-6900", email: null, li: "https://www.linkedin.com/in/marlies-schroeder-7983632/" }
@@ -327,7 +328,6 @@ function setNotes(code, i, val) {
 function buildReview() {
   var area = document.getElementById('review-area');
   area.innerHTML = '';
-  document.getElementById('error-area').innerHTML = '';
   var name = document.getElementById('submitter-name').value.trim();
   if (name) {
     var nm = document.createElement('div');
@@ -353,55 +353,44 @@ function buildReview() {
 }
 
 function submitForm() {
-  var submitBtn = document.getElementById('btn-submit');
-  var editBtn = document.getElementById('btn-edit');
-  var errorArea = document.getElementById('error-area');
-  errorArea.innerHTML = '';
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Sending...';
-  editBtn.disabled = true;
-
   var name = document.getElementById('submitter-name').value.trim();
-  var now = new Date().toISOString();
+  document.getElementById('f-name').value = name || 'Anonymous';
+  document.getElementById('f-centre').value = COUNTRY_NAMES[selectedCode];
+  document.getElementById('f-time').value = new Date().toISOString();
 
-  // Build flat data object for Sheetmonkey
-  var data = {
-    'Submitted By': name || 'Anonymous',
-    'Centre': COUNTRY_NAMES[selectedCode],
-    'Submitted At': now
-  };
-
+  // Build contact hidden inputs dynamically
+  var container = document.getElementById('f-contacts');
+  container.innerHTML = '';
   CONTACTS[selectedCode].forEach(function(c, i) {
     var s = (state[selectedCode] && state[selectedCode][i]) || {};
-    var prefix = c.name;
-    data[prefix + ' - Contacted'] = s.contacted === true ? 'Yes' : s.contacted === false ? 'No' : 'Not answered';
-    data[prefix + ' - Outcome'] = s.contacted === true ? (s.outcome || 'Not set') : 'N/A';
-    data[prefix + ' - Notes'] = s.notes || '';
+    var contacted = s.contacted === true ? 'Yes' : s.contacted === false ? 'No' : 'Not answered';
+    var outcome = s.contacted === true ? (s.outcome || 'Not set') : 'N/A';
+    var notes = s.notes || '';
+
+    var inp1 = document.createElement('input');
+    inp1.type = 'hidden';
+    inp1.name = c.name + ' - Contacted';
+    inp1.value = contacted;
+    container.appendChild(inp1);
+
+    var inp2 = document.createElement('input');
+    inp2.type = 'hidden';
+    inp2.name = c.name + ' - Outcome';
+    inp2.value = outcome;
+    container.appendChild(inp2);
+
+    var inp3 = document.createElement('input');
+    inp3.type = 'hidden';
+    inp3.name = c.name + ' - Notes';
+    inp3.value = notes;
+    container.appendChild(inp3);
   });
 
-  // Build form-encoded body
-  var body = Object.keys(data).map(function(k) {
-    return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]);
-  }).join('&');
+  // Submit the hidden form
+  document.getElementById('sm-form').submit();
 
-  fetch(SHEETMONKEY_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body
-  })
-  .then(function(res) {
-    if (!res.ok) throw new Error('Server error: ' + res.status);
-    return res.json();
-  })
-  .then(function() {
-    showDone();
-  })
-  .catch(function(err) {
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Submit';
-    editBtn.disabled = false;
-    errorArea.innerHTML = '<div class="error-msg">Something went wrong — please try again. (' + err.message + ')</div>';
-  });
+  // Show done screen after short delay
+  setTimeout(function() { showDone(); }, 800);
 }
 
 function showDone() {
@@ -426,9 +415,7 @@ function resetForm() {
   state = {};
   document.querySelectorAll('.country-btn').forEach(function(b){ b.classList.remove('selected'); });
   document.getElementById('submitter-name').value = '';
-  document.getElementById('btn-submit').disabled = false;
-  document.getElementById('btn-submit').textContent = 'Submit';
-  document.getElementById('btn-edit').disabled = false;
+  document.getElementById('f-contacts').innerHTML = '';
   document.querySelectorAll('.step').forEach(function(s){ s.classList.remove('active'); });
   document.getElementById('step-0').classList.add('active');
   setProgress(0);
